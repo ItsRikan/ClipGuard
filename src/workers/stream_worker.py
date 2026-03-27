@@ -1,8 +1,10 @@
 from .frame_processor import frame_processor
 from .frame_producer import frame_producer
 import threading
-frame_producer()
-def start_stream_worker(video_url,interval,context,session,db):
+
+
+
+async def start_stream_worker(video_url,match_queue,interval,context,session,db):
     queue = session["queue"]
     stop_event = session["stop_event"]
     session_id = session["id"]
@@ -13,7 +15,7 @@ def start_stream_worker(video_url,interval,context,session,db):
     )
     processor = threading.Thread(
         target=frame_processor,
-        args=(queue,context,session_id,stop_event,db),
+        args=(queue,match_queue,context,session_id,stop_event,db),
         daemon=True
     )
     chunker.start()

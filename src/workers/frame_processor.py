@@ -1,8 +1,10 @@
-from ..services.context_manager import Context
+import asyncio
+
+from ..services.context_manager import ContextManager
 from ..core.aggrigator import Aggregator
 from sqlalchemy.orm import Session
 
-def frame_processor(queue,context:Context,session_id,stop_event,db:Session):
+def frame_processor(queue,match_queue:asyncio.Queue,context:ContextManager,session_id,stop_event,db:Session):
     aggregator = Aggregator()
     while not stop_event.is_set():
         try:
@@ -14,7 +16,5 @@ def frame_processor(queue,context:Context,session_id,stop_event,db:Session):
         aggregator.update(results,db)
         matches = aggregator.get_top_matches()
         if matches:
-            context.alert_service.send(session_id,{
-                "type":"MATCH",
-                "matches":matches
-            })
+            for match in matches:
+                match_queue.put_nowait({"session_id":session_id,"match":match})

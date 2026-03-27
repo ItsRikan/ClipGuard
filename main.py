@@ -4,6 +4,7 @@ from queue import Queue
 from sqlalchemy.orm import Session
 from fastapi import FastAPI,UploadFile,Depends,File, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import HTTPException
+import asyncio
 
 from src.db.models import Video
 from src.services.ingestion import sync_imagekit_files,run_ingestion
@@ -13,17 +14,18 @@ from src.services.query import query_video
 from src.db.database import Base,engine
 from src.utils.file_handeling import save_temp,cleanup
 from src.utils.logger import logging
-from .src.core.session_maker import create_session,delete_session
-from .src.workers.stream_worker import start_stream_worker
-from .src.services.context_manager import ContextManager
+from src.core.session_maker import create_session,delete_session
+from src.workers.stream_worker import start_stream_worker
+from src.services.context_manager import ContextManager
 
-from .api.model import StartStreamRequestSchema
+from api.model import StartStreamRequestSchema
 
 
 
 app = FastAPI()
 Base.metadata.create_all(bind = engine)
 context=ContextManager()
+match_queue = asyncio.Queue()
 
 @app.post("/query")
 async def load_from_imagekit(threshold_count:int,threshold_score:float,file:UploadFile=File(...),db = Depends(get_db)):
@@ -86,10 +88,10 @@ def cleanup_dbs(db:Session=Depends(get_db)):
 # Stream Manager
 
 @app.post("/start_stream")
-def start_stream(request:StartStreamRequestSchema,db:Session=Depends(get_db)):
+async def start_stream(request:StartStreamRequestSchema,db:Session=Depends(get_db)):
     session = create_session()
     session["queue"] = Queue(maxsize=20)
-    start_stream_worker(request.url,request.interval,context,session,db)
+    await start_stream_worker(request.url,match_queue,request.interval,context,session,db)
     return {
         "status":"session started",
         "session_id":session["id"]
@@ -97,17 +99,27 @@ def start_stream(request:StartStreamRequestSchema,db:Session=Depends(get_db)):
 
 @app.post("/stop-stream/{session_id}")
 def stop_stream(session_id:str):
-    delete_session(session_id)
+    session = delete_session(session_id)
     return {
-        "status":"session stoped"
+        "status":"session stoped",
+        "session":session
         }
 
 @app.websocket("ws/{session_id}")
 async def ws_route(ws:WebSocket,session_id:str):
-    await context.alert_service.connect(session_id,ws)
+    await context.manager.connect(session_id,ws)
     try:
         while True:
             await ws.receive_text()
     except WebSocketDisconnect:
-        context.alert_service.active.pop(session_id,None)
-    
+        context.manager.active.pop(session_id,None)
+
+@app.on_event("startup")
+async def event_dispatcher():
+    asyncio.create_task(dispatch_events())   
+
+async def dispatch_events():
+    while True:
+        event = await match_queue.get()
+        logging.debug(f"Found : {event}")
+        await context.manager.send(event["session_id"],event["match"])

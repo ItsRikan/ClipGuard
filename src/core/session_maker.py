@@ -7,8 +7,9 @@ def create_session():
     active_session[session_id] = {
         "threads":[],
         "queue":None,
+        "match_queue":None,
         "id":session_id,
-        "stop_event ":Event()
+        "stop_event":Event()
     }
     return active_session[session_id]
 
