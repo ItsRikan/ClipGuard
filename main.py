@@ -14,7 +14,7 @@ from src.services.query import query_video
 from src.db.database import Base,engine
 from src.utils.file_handeling import save_temp,cleanup
 from src.utils.logger import logging
-from src.core.session_maker import create_session,delete_session
+from src.core.session_maker import create_session,delete_session,get_active_sessions,stop_session
 from src.workers.stream_worker import start_stream_worker
 from src.services.context_manager import ContextManager
 
@@ -99,10 +99,10 @@ async def start_stream(request:StartStreamRequestSchema,db:Session=Depends(get_d
 
 @app.post("/stop-stream/{session_id}")
 def stop_stream(session_id:str):
-    session = delete_session(session_id)
+    session = stop_session(session_id=session_id)
     return {
-        "status":"session stoped",
-        "session":session
+        "status":"session stopped",
+        "session_id":session_id if session else None
         }
 
 @app.websocket("ws/{session_id}")
@@ -123,3 +123,8 @@ async def dispatch_events():
         event = await match_queue.get()
         logging.debug(f"Found : {event}")
         await context.manager.send(event["session_id"],event["match"])
+
+#temp
+@app.get("/show-sessions")
+def show():
+    return get_active_sessions()
