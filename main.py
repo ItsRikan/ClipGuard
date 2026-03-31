@@ -41,9 +41,10 @@ async def start_stream(request:StartStreamRequestSchema):
     live_memory = LiveMemoryIndex()
     session["live_memory"] = live_memory
     session["url"] = request.url
+    stop_event = session["stop_event"]
     worker = threading.Thread(
         target=start_stream_worker,
-        args=(request.url,request.interval,context,live_memory)
+        args=(request.url,request.interval,context,live_memory,stop_event)
     )
     worker.start()
     session["thread"] = worker
@@ -55,10 +56,15 @@ async def start_stream(request:StartStreamRequestSchema):
 @app.post("/stop-stream/{session_id}")
 def stop_stream(session_id:str):
     session = stop_session(session_id=session_id)
+    if session:
+        return {
+            "status":"successful" if session["stop_event"].is_set() else "failed",
+            "session_id":session_id
+            }
     return {
-        "status":"successful",
-        "session_id":session_id if session else None
-        }
+        "status":"failed",
+        "session_id":None
+    }
 
 @app.websocket("/ws/{session_id}")
 async def ws_route(ws:WebSocket,session_id:str):

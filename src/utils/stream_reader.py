@@ -2,7 +2,7 @@ import cv2
 import yt_dlp
 import time
 import os
-
+from threading import Event
 # Browser-like headers to avoid bot detection
 ydl_opts = {
     'format': 'best[ext=mp4]',
@@ -24,13 +24,13 @@ if cookies_file and os.path.exists(cookies_file):
     ydl_opts['cookiefile'] = cookies_file
 
 
-def stream_frame(video_url,interval):
+def stream_frame(video_url,interval,stop_event:Event):
     last_time = 0
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(video_url, download=False)
         url = info.get('url')
     capture = cv2.VideoCapture(url)
-    while True:
+    while not stop_event.is_set():
         grabbed,frame = capture.read()
         if not grabbed:
             break

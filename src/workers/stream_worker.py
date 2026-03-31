@@ -2,9 +2,9 @@ from ..utils.stream_reader import stream_frame
 from ..services.context_manager import ContextManager
 from ..core.live_memory import LiveMemoryIndex
 
-def start_stream_worker(video_url,interval,context:ContextManager,live_memory:LiveMemoryIndex):
+def start_stream_worker(video_url,interval,context:ContextManager,live_memory:LiveMemoryIndex,stop_event):
     frame_no = 0
-    frames = stream_frame(video_url,interval)
+    frames = stream_frame(video_url,interval,stop_event)
     for frame in frames:
         embedding = context.embedding_service.embed_frame(frame)
         frame_no+=1
