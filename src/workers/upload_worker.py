@@ -25,10 +25,10 @@ def check_uploaded_video(path,embedding_service:EmbeddingService,match_queue:asy
             else:
                 session_windows[session_id].append(0)
             window = session_windows[session_id]
-            if len(window)>=2 and sum(window)>=WINDOW_THRESHOLD:
+            if len(window)>=2 and sum(window)/len(window)>=WINDOW_THRESHOLD:
                 match_queue.put_nowait({
                     "stream_id":session_id,
                     "video_path":path,
-                    "score":round(sum(window)/WINDOW_SIZE,3)
+                    "score":round(sum(window)/len(window),3)
                 })
                 session_windows[session_id].clear()
