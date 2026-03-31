@@ -39,6 +39,8 @@ def stream_frame(video_url,interval):
             gray_scaled = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
             last_time = current_time
             yield gray_scaled
+    capture.release()
+    cv2.destroyAllWindows()
 
 
 def live_video_reader(video_path: str, interval=5):
