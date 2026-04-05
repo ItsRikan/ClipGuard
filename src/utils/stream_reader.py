@@ -3,6 +3,7 @@ import yt_dlp
 import time
 import os
 from threading import Event
+from pathlib import Path
 # Browser-like headers to avoid bot detection
 ydl_opts = {
     'format': 'best[ext=mp4]',
@@ -43,18 +44,28 @@ def stream_frame(video_url,interval,stop_event:Event):
     cv2.destroyAllWindows()
 
 
-def live_video_reader(video_path: str, interval=5):
-    video = cv2.VideoCapture(video_path)
-    fps_interval = int(video.get(cv2.CAP_PROP_FPS)) * interval
+def live_video_reader(video_path: str, interval=5):    
+    video_path_obj = Path(video_path)
+    video_path_str = str(video_path_obj.resolve()).replace("\\", "/")
+    video = cv2.VideoCapture(video_path_str)
+    if not video.isOpened():
+        video.release()
+        raise RuntimeError(f"Failed to open video: {video_path_str}")
+    fps = video.get(cv2.CAP_PROP_FPS)
+    
+    fps_interval = int(fps) * interval
     frame_count = 0
-    while True:
-        ret, frame = video.read()
-        if not ret:
-            break
+    
+    try:
+        while True:
+            ret, frame = video.read()
+            if not ret:
+                break
 
-        if frame_count % fps_interval == 0:
-            gray_scaled = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            yield gray_scaled
-        frame_count += 1
-    video.release()
-    cv2.destroyAllWindows()
+            if frame_count % fps_interval == 0:
+                gray_scaled = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                yield gray_scaled
+            frame_count += 1
+    finally:
+        video.release()
+        cv2.destroyAllWindows()
