@@ -28,7 +28,7 @@ def delete_session(session_id:str):
     return active_session.pop(session_id,None)
 
 def get_active_sessions():
-    return [k for k in active_session.keys()]
+    return [k for k,v in active_session.items() if not v["stop_event"].is_set()]
 
 
 def get_all_live_streams():
