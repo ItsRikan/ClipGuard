@@ -58,7 +58,7 @@ def stop_stream(session_id:str):
     session = stop_session(session_id=session_id)
     if session:
         return {
-            "status":"successful" if session["stop_event"].is_set() else "failed",
+            "status":"successful",
             "session_id":session_id
             }
     return {
