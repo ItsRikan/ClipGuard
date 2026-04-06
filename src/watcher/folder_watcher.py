@@ -3,9 +3,9 @@ import threading
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from ..workers.upload_worker import check_uploaded_video
+from ..constant_manager import *
 
 
-WATCH_DIR = r"D:\Programming\Python\Projects\VideoDect\TestData"
 
 class VideoHandler(FileSystemEventHandler):
     def __init__(self,embedding_service,match_queue):

@@ -8,10 +8,7 @@ from ..utils.stream_reader import live_video_reader
 from ..services.embedding import EmbeddingService
 from ..core.session_maker import get_all_live_streams
 from ..utils.logger import logging
-WINDOW_SIZE = 12
-SCORE_THRESHOLD = 0.6
-WINDOW_THRESHOLD = 0.7
-MIN_SEQUENTIAL_MATCH = 2
+from ..constant_manager import *
 
 def check_uploaded_video(path,embedding_service:EmbeddingService,match_queue:asyncio.Queue):
     session_windows = defaultdict(dict)
